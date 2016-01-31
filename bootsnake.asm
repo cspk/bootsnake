@@ -15,15 +15,21 @@ ioport_kbd equ 0x60
 ioport_pic equ 0x20
 pic_eoi equ 0x20; end of interrupt command code
 
+scancode_cursor equ 0xE0
+scancode_cursor_up_pressed equ 0x48
+scancode_cursor_down_pressed equ 0x50
+scancode_cursor_left_pressed equ 0x4B
+scancode_cursor_right_pressed equ 0x4D
+
 ; snake segment is 2-byte long: byte 1 - segment row, byte 2 - segment column
 snake_segments equ 0x0500; 0x0500-0x7BFF guaranteed to be free
 snake_head_init_row equ screen_rows / 2
 snake_head_init_col equ screen_cols / 2
 
-snake_direction_up equ 0
-snake_direction_down equ 1
-snake_direction_left equ 2
-snake_direction_right equ 3
+snake_direction_up equ scancode_cursor_up_pressed
+snake_direction_down equ scancode_cursor_down_pressed
+snake_direction_left equ scancode_cursor_left_pressed
+snake_direction_right equ scancode_cursor_right_pressed
 
 main:
 	; hide cursor
@@ -56,6 +62,20 @@ kbd_isr:
 	push ax
 
 	in al, ioport_kbd; read from keyboard io port
+
+	cmp al, scancode_cursor_up_pressed
+		je .set_direction
+	cmp al, scancode_cursor_down_pressed
+		je .set_direction
+	cmp al, scancode_cursor_left_pressed
+		je .set_direction
+	cmp al, scancode_cursor_right_pressed
+		je .set_direction
+
+	jmp .out
+.set_direction:
+	mov [snake_current_direction], al
+.out:
 	mov al, pic_eoi
 	out ioport_pic, al; acknowledge interrupt to PIC
 
