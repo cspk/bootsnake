@@ -64,15 +64,31 @@ kbd_isr:
 	in al, ioport_kbd; read from keyboard io port
 
 	cmp al, scancode_cursor_up_pressed
-		je .set_direction
+		je .set_direction_up
 	cmp al, scancode_cursor_down_pressed
-		je .set_direction
+		je .set_direction_down
 	cmp al, scancode_cursor_left_pressed
-		je .set_direction
+		je .set_direction_left
 	cmp al, scancode_cursor_right_pressed
-		je .set_direction
-
+		je .set_direction_right
 	jmp .out
+
+.set_direction_up:
+	cmp byte [snake_current_direction], snake_direction_down
+		je .out
+	jmp .set_direction
+.set_direction_down:
+	cmp byte [snake_current_direction], snake_direction_up
+		je .out
+	jmp .set_direction
+.set_direction_left:
+	cmp byte [snake_current_direction], snake_direction_right
+		je .out
+	jmp .set_direction
+.set_direction_right:
+	cmp byte [snake_current_direction], snake_direction_left
+		je .out
+	jmp .set_direction
 .set_direction:
 	mov [snake_current_direction], al
 .out:
