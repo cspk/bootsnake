@@ -20,6 +20,11 @@ snake_segments equ 0x0500; 0x0500-0x7BFF guaranteed to be free
 snake_head_init_row equ screen_rows / 2
 snake_head_init_col equ screen_cols / 2
 
+snake_direction_up equ 0
+snake_direction_down equ 1
+snake_direction_left equ 2
+snake_direction_right equ 3
+
 main:
 	; hide cursor
 	mov ah, bios_video_cursor_shape_fn
@@ -41,6 +46,10 @@ main:
 	push '#'
 	call snake_print
 	add sp, 2
+.loop:
+	call sleep_nop
+	call snake_move
+	jmp .loop
 jmp $
 
 kbd_isr:
@@ -121,7 +130,80 @@ snake_print:
 	pop bp
 ret
 
+snake_move:
+	push ' '
+	call snake_print
+	add sp, 2
+
+	call snake_tail_update
+	call snake_head_update
+
+	push '#'
+	call snake_print
+	add sp, 2
+ret
+
+snake_tail_update:
+	pusha
+
+	mov ax, [snake_segment_count]
+	dec ax
+	shl ax, 1
+
+	mov bx, snake_segments
+	add bx, ax
+.loop:
+	mov ax, [bx - 2]
+	mov [bx], ax
+	sub bx, 2
+	cmp bx, snake_segments
+		jne .loop
+
+	popa
+ret
+
+snake_head_update:
+	cmp byte [snake_current_direction], snake_direction_up
+		je .move_up
+	cmp byte [snake_current_direction], snake_direction_down
+		je .move_down
+	cmp byte [snake_current_direction], snake_direction_left
+		je .move_left
+	cmp byte [snake_current_direction], snake_direction_right
+		je .move_right
+ret
+.move_up:
+	dec byte [snake_segments + 0]
+ret
+.move_down:
+	inc byte [snake_segments + 0]
+ret
+.move_left:
+	dec byte [snake_segments + 1]
+ret
+.move_right:
+	inc byte [snake_segments + 1]
+ret
+
+; This is a temporary replacement for a proper sleep/delay routine. I have to
+; use it because I don't know yet how to interrupt BIOS sleep routine (int 0x15,
+; ah = 0x86) when a key is pressed.
+sleep_nop:
+	push eax
+
+	xor eax, eax
+.loop:
+	nop
+	inc eax
+	cmp eax, 0xFFFF * 128
+		je .out
+	jmp .loop
+.out:
+	pop eax
+ret
+
 snake_segment_count: dw 4
+snake_current_direction: db snake_direction_left
 
 ; Make executable be 512 bytes exactly. Essential for making it bootable.
 times (bootsect_sz - boot_sign_sz) - ($ - $$) db 0
