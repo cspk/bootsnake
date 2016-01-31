@@ -13,6 +13,11 @@ ioport_kbd equ 0x60
 ioport_pic equ 0x20
 pic_eoi equ 0x20; end of interrupt command code
 
+; snake segment is 2-byte long: byte 1 - segment row, byte 2 - segment column
+snake_segments equ 0x0500; 0x0500-0x7BFF guaranteed to be free
+snake_head_init_row equ screen_rows / 2
+snake_head_init_col equ screen_cols / 2
+
 main:
 	; hide cursor
 	mov ah, bios_video_cursor_shape_fn
@@ -28,6 +33,8 @@ main:
 	mov word [kbd_int * 4], kbd_isr; write ISR offset to IVT
 	mov word [kbd_int * 4 + 2], cs; write segment containing ISR
 	sti; enable interrupts
+
+	call snake_init
 jmp $
 
 kbd_isr:
@@ -39,6 +46,24 @@ kbd_isr:
 
 	pop ax
 iret
+
+snake_init:
+	mov dl, snake_head_init_col; column number
+	mov bx, 0; offset from "snake_segments" label
+	mov ax, [snake_segment_count]
+	shl ax, 1; bx is incremented by 2 each time in loop, so multiply by two
+.loop:
+	mov byte [snake_segments + bx + 0], snake_head_init_row
+	mov byte [snake_segments + bx + 1], dl
+
+	inc dx
+	add bx, 2
+
+	cmp bx, ax
+		jne .loop
+ret
+
+snake_segment_count: dw 4
 
 ; Make executable be 512 bytes exactly. Essential for making it bootable.
 times (bootsect_sz - boot_sign_sz) - ($ - $$) db 0
