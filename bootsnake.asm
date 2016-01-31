@@ -14,7 +14,7 @@ ioport_pic equ 0x20
 pic_eoi equ 0x20; end of interrupt command code
 
 main:
-	; hide the cursor
+	; hide cursor
 	mov ah, bios_video_cursor_shape_fn
 	mov ch, 0x20; bits 6:5 == 01 - cursor invisible
 	int bios_video_int
@@ -25,8 +25,8 @@ main:
 
 	; setup keyboard interrupt service routine
 	cli; disable interrupts
-	mov word [kbd_int * 4], kbd_isr; write the offset of the ISR to the IVT
-	mov word [kbd_int * 4 + 2], cs; write the segment containing the ISR
+	mov word [kbd_int * 4], kbd_isr; write ISR offset to IVT
+	mov word [kbd_int * 4 + 2], cs; write segment containing ISR
 	sti; enable interrupts
 jmp $
 
@@ -35,7 +35,7 @@ kbd_isr:
 
 	in al, ioport_kbd; read from keyboard io port
 	mov al, pic_eoi
-	out ioport_pic, al; acknowledge the interrupt to the PIC
+	out ioport_pic, al; acknowledge interrupt to PIC
 
 	pop ax
 iret
