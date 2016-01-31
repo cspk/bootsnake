@@ -7,6 +7,8 @@ bootsect_sz equ 512
 boot_sign_sz equ 2
 
 video_mem_segment equ 0xB800
+screen_rows equ 25
+screen_cols equ 80
 
 kbd_int equ 0x09
 ioport_kbd equ 0x60
@@ -35,6 +37,10 @@ main:
 	sti; enable interrupts
 
 	call snake_init
+
+	push '#'
+	call snake_print
+	add sp, 2
 jmp $
 
 kbd_isr:
@@ -61,6 +67,58 @@ snake_init:
 
 	cmp bx, ax
 		jne .loop
+ret
+
+print_char: ; argument push order: row, col, char
+	push bp
+	mov bp, sp
+	push ax
+	push bx
+
+	; desired char position = (row * screen_cols + col)
+	mov ax, screen_cols
+	mul byte [bp + 8]
+	add ax, [bp + 6]
+
+	; Multiplication by 2, needed because the video memory consists of words
+	; where the first byte is character attribute and the second is the char
+	; itself. We're not interested in any attributes, just place the character
+	; in desired place.
+	shl ax, 1
+
+	mov bx, ax
+	mov al, [bp + 4]
+	mov [es:bx], al
+
+	pop bx
+	pop ax
+	pop bp
+ret
+
+snake_print:
+	push bp
+	mov bp, sp
+	pusha
+
+	mov bx, 0
+.loop:
+	mov al, [snake_segments + bx + 0]
+	mov dl, [snake_segments + bx + 1]
+	mov cx, [snake_segment_count]
+	shl cx, 1
+
+	push ax
+	push dx
+	push word [bp + 4]
+	call print_char
+	add sp, 6
+
+	add bx, 2
+	cmp bx, cx
+		jne .loop
+
+	popa
+	pop bp
 ret
 
 snake_segment_count: dw 4
