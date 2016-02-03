@@ -210,15 +210,49 @@ snake_head_update:
 ret
 .move_up:
 	dec byte [snake_segments + 0]
+	cmp byte [snake_segments + 0], 0
+		je game_over
+	call check_self_hit
 ret
 .move_down:
 	inc byte [snake_segments + 0]
+	cmp byte [snake_segments + 0], screen_rows - 1
+		je game_over
+	call check_self_hit
 ret
 .move_left:
 	dec byte [snake_segments + 1]
+	cmp byte [snake_segments + 1], 0
+		je game_over
+	call check_self_hit
 ret
 .move_right:
 	inc byte [snake_segments + 1]
+	cmp byte [snake_segments + 1], screen_cols - 1
+		je game_over
+	call check_self_hit
+ret
+
+check_self_hit:
+	pusha
+
+	mov ah, [snake_segments + 0]; head row
+	mov al, [snake_segments + 1]; head col
+	mov bx, 2; current snake segment offset
+	mov dx, [snake_segment_count]
+	shl dx, 1; multiply by two because we add 2 to bx each time
+.loop:
+	cmp ah, [snake_segments + bx + 0]
+		jne .not_hit
+	cmp al, [snake_segments + bx + 1]
+		jne .not_hit
+	jmp game_over
+.not_hit:
+	add bx, 2
+	cmp bx, dx
+		jne .loop
+.out:
+	popa
 ret
 
 ; This is a temporary replacement for a proper sleep/delay routine. I have to
@@ -237,6 +271,18 @@ sleep_nop:
 .out:
 	pop eax
 ret
+
+game_over:
+	push '#'
+	call snake_print
+
+	mov al, [snake_segments + 0]
+	mov bl, [snake_segments + 1]
+	push ax
+	push bx
+	push 'X'
+	call print_char
+jmp $
 
 snake_segment_count: dw 4
 snake_current_direction: db snake_direction_left
