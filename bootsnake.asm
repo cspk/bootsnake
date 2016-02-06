@@ -48,13 +48,9 @@ main:
 	sti; enable interrupts
 
 	call snake_init
-
-	push '#'
-	call snake_print
-	add sp, 2
 .loop:
-	call sleep_nop
 	call snake_move
+	call sleep_nop
 	jmp .loop
 jmp $
 
